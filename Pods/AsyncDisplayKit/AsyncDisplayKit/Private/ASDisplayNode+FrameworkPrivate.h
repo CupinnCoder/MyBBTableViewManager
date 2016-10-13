@@ -1,10 +1,12 @@
-/* Copyright (c) 2014-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- */
+//
+//  ASDisplayNode+FrameworkPrivate.h
+//  AsyncDisplayKit
+//
+//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+//
 
 //
 // The following methods are ONLY for use by _ASDisplayLayer, _ASDisplayView, and ASDisplayNode.
@@ -13,9 +15,7 @@
 
 #import "_AS-objc-internal.h"
 #import "ASDisplayNode.h"
-#import "ASSentinel.h"
 #import "ASThread.h"
-#import "_ASDisplayLayer.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -49,14 +49,45 @@ typedef NS_OPTIONS(NSUInteger, ASHierarchyState)
   ASHierarchyStateLayoutPending           = 1 << 3
 };
 
-inline BOOL ASHierarchyStateIncludesLayoutPending(ASHierarchyState hierarchyState)
+ASDISPLAYNODE_INLINE BOOL ASHierarchyStateIncludesLayoutPending(ASHierarchyState hierarchyState)
 {
   return ((hierarchyState & ASHierarchyStateLayoutPending) == ASHierarchyStateLayoutPending);
 }
 
-inline BOOL ASHierarchyStateIncludesRangeManaged(ASHierarchyState hierarchyState)
+ASDISPLAYNODE_INLINE BOOL ASHierarchyStateIncludesRangeManaged(ASHierarchyState hierarchyState)
 {
     return ((hierarchyState & ASHierarchyStateRangeManaged) == ASHierarchyStateRangeManaged);
+}
+
+ASDISPLAYNODE_INLINE BOOL ASHierarchyStateIncludesRasterized(ASHierarchyState hierarchyState)
+{
+	return ((hierarchyState & ASHierarchyStateRasterized) == ASHierarchyStateRasterized);
+}
+
+ASDISPLAYNODE_INLINE BOOL ASHierarchyStateIncludesTransitioningSupernodes(ASHierarchyState hierarchyState)
+{
+	return ((hierarchyState & ASHierarchyStateTransitioningSupernodes) == ASHierarchyStateTransitioningSupernodes);
+}
+
+__unused static NSString * _Nonnull NSStringFromASHierarchyState(ASHierarchyState hierarchyState)
+{
+	NSMutableArray *states = [NSMutableArray array];
+	if (hierarchyState == ASHierarchyStateNormal) {
+		[states addObject:@"Normal"];
+	}
+	if (ASHierarchyStateIncludesRangeManaged(hierarchyState)) {
+		[states addObject:@"RangeManaged"];
+	}
+	if (ASHierarchyStateIncludesLayoutPending(hierarchyState)) {
+		[states addObject:@"LayoutPending"];
+	}
+	if (ASHierarchyStateIncludesRasterized(hierarchyState)) {
+		[states addObject:@"Rasterized"];
+	}
+	if (ASHierarchyStateIncludesTransitioningSupernodes(hierarchyState)) {
+		[states addObject:@"TransitioningSupernodes"];
+	}
+	return [NSString stringWithFormat:@"{ %@ }", [states componentsJoinedByString:@" | "]];
 }
 
 @interface ASDisplayNode ()
@@ -133,14 +164,19 @@ inline BOOL ASHierarchyStateIncludesRangeManaged(ASHierarchyState hierarchyState
  */
 @property (nonatomic, assign) BOOL shouldBypassEnsureDisplay;
 
+/**
+ * @abstract Checks whether a node should be scheduled for display, considering its current and new interface states.
+ */
+- (BOOL)shouldScheduleDisplayWithNewInterfaceState:(ASInterfaceState)newInterfaceState;
+
 @end
 
 @interface UIView (ASDisplayNodeInternal)
-@property (nullable, nonatomic, assign, readwrite) ASDisplayNode *asyncdisplaykit_node;
+@property (nullable, atomic, weak, readwrite) ASDisplayNode *asyncdisplaykit_node;
 @end
 
 @interface CALayer (ASDisplayNodeInternal)
-@property (nullable, nonatomic, assign, readwrite) ASDisplayNode *asyncdisplaykit_node;
+@property (nullable, atomic, weak, readwrite) ASDisplayNode *asyncdisplaykit_node;
 @end
 
 NS_ASSUME_NONNULL_END

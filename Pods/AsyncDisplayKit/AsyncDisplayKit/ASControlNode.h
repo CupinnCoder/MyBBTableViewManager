@@ -1,10 +1,12 @@
-/* Copyright (c) 2014-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- */
+//
+//  ASControlNode.h
+//  AsyncDisplayKit
+//
+//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+//
 
 #import <AsyncDisplayKit/ASDisplayNode.h>
 
@@ -100,13 +102,13 @@ typedef NS_OPTIONS(NSUInteger, ASControlState) {
   @param controlEvent A single constant of type ASControlNodeEvent that specifies a particular user action on the control; for a list of these constants, see "Control Events". May not be 0 or ASControlNodeEventAllEvents.
   @result An array of selector names as NSString objects, or nil if there are no action selectors associated with controlEvent.
  */
-- (nullable NSArray<NSString *> *)actionsForTarget:(id)target forControlEvent:(ASControlNodeEvent)controlEvent;
+- (nullable NSArray<NSString *> *)actionsForTarget:(id)target forControlEvent:(ASControlNodeEvent)controlEvent AS_WARN_UNUSED_RESULT;
 
 /**
   @abstract Returns all target objects associated with the receiver.
   @result A set of all targets for the receiver. The set may include NSNull to indicate at least one nil target (meaning, the responder chain is searched for a target.)
  */
-- (NSSet *)allTargets;
+- (NSSet *)allTargets AS_WARN_UNUSED_RESULT;
 
 /**
   @abstract Removes a target-action pair for a particular event.

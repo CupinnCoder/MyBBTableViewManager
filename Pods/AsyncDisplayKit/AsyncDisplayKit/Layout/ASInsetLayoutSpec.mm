@@ -1,17 +1,16 @@
-/*
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
- *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
- */
+//
+//  ASInsetLayoutSpec.mm
+//  AsyncDisplayKit
+//
+//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+//
 
 #import "ASInsetLayoutSpec.h"
 
 #import "ASAssert.h"
-#import "ASBaseDefines.h"
 
 #import "ASInternalHelpers.h"
 #import "ASLayout.h"
@@ -42,7 +41,7 @@ static CGFloat centerInset(CGFloat outer, CGFloat inner)
 
 @implementation ASInsetLayoutSpec
 
-- (instancetype)initWithInsets:(UIEdgeInsets)insets child:(id<ASLayoutable>)child;
+- (instancetype)initWithInsets:(UIEdgeInsets)insets child:(id<ASLayoutElement>)child;
 {
   if (!(self = [super init])) {
     return nil;
@@ -53,7 +52,7 @@ static CGFloat centerInset(CGFloat outer, CGFloat inner)
   return self;
 }
 
-+ (instancetype)insetLayoutSpecWithInsets:(UIEdgeInsets)insets child:(id<ASLayoutable>)child
++ (instancetype)insetLayoutSpecWithInsets:(UIEdgeInsets)insets child:(id<ASLayoutElement>)child
 {
   return [[self alloc] initWithInsets:insets child:child];
 }
@@ -68,8 +67,15 @@ static CGFloat centerInset(CGFloat outer, CGFloat inner)
  Inset will compute a new constrained size for it's child after applying insets and re-positioning
  the child to respect the inset.
  */
-- (ASLayout *)measureWithSizeRange:(ASSizeRange)constrainedSize
+- (ASLayout *)calculateLayoutThatFits:(ASSizeRange)constrainedSize
+                     restrictedToSize:(ASLayoutElementSize)size
+                 relativeToParentSize:(CGSize)parentSize
 {
+  if (self.child == nil) {
+    ASDisplayNodeAssert(NO, @"Inset spec measured without a child. The spec will do nothing.");
+    return [ASLayout layoutWithLayoutElement:self size:CGSizeZero];
+  }
+  
   const CGFloat insetsX = (finiteOrZero(_insets.left) + finiteOrZero(_insets.right));
   const CGFloat insetsY = (finiteOrZero(_insets.top) + finiteOrZero(_insets.bottom));
 
@@ -89,12 +95,12 @@ static CGFloat centerInset(CGFloat outer, CGFloat inner)
     }
   };
   
-  if (self.child == nil) {
-    ASDisplayNodeAssert(NO, @"Inset spec measured without a child. The spec will do nothing.");
-    return [ASLayout layoutWithLayoutableObject:self size:CGSizeZero];
-  }
+  const CGSize insetParentSize = {
+    MAX(0, parentSize.width - insetsX),
+    MAX(0, parentSize.height - insetsY)
+  };
   
-  ASLayout *sublayout = [self.child measureWithSizeRange:insetConstrainedSize];
+  ASLayout *sublayout = [self.child layoutThatFits:insetConstrainedSize parentSize:insetParentSize];
 
   const CGSize computedSize = ASSizeRangeClamp(constrainedSize, {
     finite(sublayout.size.width + _insets.left + _insets.right, constrainedSize.max.width),
@@ -112,18 +118,7 @@ static CGFloat centerInset(CGFloat outer, CGFloat inner)
   
   sublayout.position = CGPointMake(x, y);
   
-  return [ASLayout layoutWithLayoutableObject:self size:computedSize sublayouts:@[sublayout]];
-}
-
-- (void)setChildren:(NSArray *)children
-{
-  ASDisplayNodeAssert(NO, @"not supported by this layout spec");
-}
-
-- (NSArray *)children
-{
-  ASDisplayNodeAssert(NO, @"not supported by this layout spec");
-  return nil;
+  return [ASLayout layoutWithLayoutElement:self size:computedSize sublayouts:@[sublayout]];
 }
 
 @end

@@ -37,7 +37,8 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    _tableView = [[ASTableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain asyncDataFetching:YES];
+//    [[ASTableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain asyncDataFetching:YES];
+    _tableView = [[ASTableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
     _tableView.separatorStyle = UITableViewCellSeparatorStyleNone; // SocialAppNode has its own separator
     [self.view addSubview:_tableView];
     // Do any additional setup after loading the view, typically from a nib.

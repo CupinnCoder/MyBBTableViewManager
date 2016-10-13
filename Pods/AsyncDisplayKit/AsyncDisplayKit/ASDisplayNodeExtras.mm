@@ -1,10 +1,12 @@
-/* Copyright (c) 2014-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- */
+//
+//  ASDisplayNodeExtras.mm
+//  AsyncDisplayKit
+//
+//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+//
 
 #import "ASDisplayNodeExtras.h"
 #import "ASDisplayNodeInternal.h"
@@ -37,7 +39,7 @@ extern ASDisplayNode *ASViewToDisplayNode(UIView *view)
   return view.asyncdisplaykit_node;
 }
 
-extern void ASDisplayNodePerformBlockOnEveryNode(CALayer *layer, ASDisplayNode *node, void(^block)(ASDisplayNode *node))
+extern void ASDisplayNodePerformBlockOnEveryNode(CALayer * _Nullable layer, ASDisplayNode * _Nullable node, BOOL traverseSublayers, void(^block)(ASDisplayNode *node))
 {
   if (!node) {
     ASDisplayNodeCAssertNotNil(layer, @"Cannot recursively perform with nil node and nil layer");
@@ -48,19 +50,19 @@ extern void ASDisplayNodePerformBlockOnEveryNode(CALayer *layer, ASDisplayNode *
   if (node) {
     block(node);
   }
-  if (!layer && [node isNodeLoaded] && ASDisplayNodeThreadIsMain()) {
+  if (traverseSublayers && !layer && [node isNodeLoaded] && ASDisplayNodeThreadIsMain()) {
     layer = node.layer;
   }
   
-  if (layer) {
+  if (traverseSublayers && layer && node.shouldRasterizeDescendants == NO) {
     /// NOTE: The docs say `sublayers` returns a copy, but it does not.
     /// See: http://stackoverflow.com/questions/14854480/collection-calayerarray-0x1ed8faa0-was-mutated-while-being-enumerated
     for (CALayer *sublayer in [[layer sublayers] copy]) {
-      ASDisplayNodePerformBlockOnEveryNode(sublayer, nil, block);
+      ASDisplayNodePerformBlockOnEveryNode(sublayer, nil, traverseSublayers, block);
     }
   } else if (node) {
     for (ASDisplayNode *subnode in [node subnodes]) {
-      ASDisplayNodePerformBlockOnEveryNode(nil, subnode, block);
+      ASDisplayNodePerformBlockOnEveryNode(nil, subnode, traverseSublayers, block);
     }
   }
 }
@@ -78,15 +80,16 @@ extern void ASDisplayNodePerformBlockOnEveryNodeBFS(ASDisplayNode *node, void(^b
     block(node);
 
     // Add all subnodes to process in next step
-    for (int i = 0; i < node.subnodes.count; i++)
-      queue.push(node.subnodes[i]);
+    for (ASDisplayNode *subnode in node.subnodes) {
+      queue.push(subnode);
+    }
   }
 }
 
-extern void ASDisplayNodePerformBlockOnEverySubnode(ASDisplayNode *node, void(^block)(ASDisplayNode *node))
+extern void ASDisplayNodePerformBlockOnEverySubnode(ASDisplayNode *node, BOOL traverseSublayers, void(^block)(ASDisplayNode *node))
 {
   for (ASDisplayNode *subnode in node.subnodes) {
-    ASDisplayNodePerformBlockOnEveryNode(nil, subnode, block);
+    ASDisplayNodePerformBlockOnEveryNode(nil, subnode, YES, block);
   }
 }
 
@@ -142,7 +145,7 @@ static void _ASDisplayNodeFindAllSubnodes(NSMutableArray *array, ASDisplayNode *
 
   for (ASDisplayNode *subnode in node.subnodes) {
     if (block(subnode)) {
-      [array addObject:node];
+      [array addObject:subnode];
     }
 
     _ASDisplayNodeFindAllSubnodes(array, subnode, block);

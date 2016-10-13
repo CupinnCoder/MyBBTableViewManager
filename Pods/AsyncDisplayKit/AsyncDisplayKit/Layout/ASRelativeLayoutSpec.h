@@ -4,6 +4,11 @@
 //
 //  Created by Samuel Stow on 12/31/15.
 //
+//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+//
 
 #import <AsyncDisplayKit/ASLayoutSpec.h>
 
@@ -31,7 +36,7 @@ typedef NS_OPTIONS(NSUInteger, ASRelativeLayoutSpecSizingOption) {
 
 NS_ASSUME_NONNULL_BEGIN
 
-/** Lays out a single layoutable child and positions it within the layout bounds according to vertical and horizontal positional specifiers.
+/** Lays out a single layoutElement child and positions it within the layout bounds according to vertical and horizontal positional specifiers.
  *  Can position the child at any of the 4 corners, or the middle of any of the 4 edges, as well as the center - similar to "9-part" image areas.
  */
 @interface ASRelativeLayoutSpec : ASLayoutSpec
@@ -52,7 +57,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)relativePositionLayoutSpecWithHorizontalPosition:(ASRelativeLayoutSpecPosition)horizontalPosition
                                                 verticalPosition:(ASRelativeLayoutSpecPosition)verticalPosition
                                                     sizingOption:(ASRelativeLayoutSpecSizingOption)sizingOption
-                                                           child:(id<ASLayoutable>)child;
+                                                           child:(id<ASLayoutElement>)child AS_WARN_UNUSED_RESULT;
 
 /*!
  * @discussion convenience initializer for a ASRelativeLayoutSpec
@@ -65,7 +70,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithHorizontalPosition:(ASRelativeLayoutSpecPosition)horizontalPosition
                           verticalPosition:(ASRelativeLayoutSpecPosition)verticalPosition
                               sizingOption:(ASRelativeLayoutSpecSizingOption)sizingOption
-                                     child:(id<ASLayoutable>)child;
+                                     child:(id<ASLayoutElement>)child;
 
 @end
 

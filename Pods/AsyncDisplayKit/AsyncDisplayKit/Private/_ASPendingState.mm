@@ -1,10 +1,12 @@
-/* Copyright (c) 2014-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- */
+//
+//  _ASPendingState.mm
+//  AsyncDisplayKit
+//
+//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+//
 
 #import "_ASPendingState.h"
 
@@ -54,6 +56,7 @@ typedef struct {
   int setBorderWidth:1;
   int setBorderColor:1;
   int setAsyncTransactionContainer:1;
+  int setAllowsGroupOpacity:1;
   int setAllowsEdgeAntialiasing:1;
   int setEdgeAntialiasingMask:1;
   int setIsAccessibilityElement:1;
@@ -151,6 +154,7 @@ ASDISPLAYNODE_INLINE void ASPendingStateApplyMetricsToLayer(_ASPendingState *sta
 @synthesize contents=contents;
 @synthesize hidden=isHidden;
 @synthesize needsDisplayOnBoundsChange=needsDisplayOnBoundsChange;
+@synthesize allowsGroupOpacity=allowsGroupOpacity;
 @synthesize allowsEdgeAntialiasing=allowsEdgeAntialiasing;
 @synthesize edgeAntialiasingMask=edgeAntialiasingMask;
 @synthesize autoresizesSubviews=autoresizesSubviews;
@@ -178,6 +182,19 @@ ASDISPLAYNODE_INLINE void ASPendingStateApplyMetricsToLayer(_ASPendingState *sta
 
 static CGColorRef blackColorRef = NULL;
 static UIColor *defaultTintColor = nil;
+static BOOL defaultAllowsGroupOpacity = YES;
+static BOOL defaultAllowsEdgeAntialiasing = NO;
+
++ (void)load
+{
+  // Create temporary view to read default values that are based on linked SDK and Info.plist values
+  // Ensure this values cached on the main thread before needed
+  ASDisplayNodeCAssertMainThread();
+  UIView *view = [[UIView alloc] init];
+  defaultAllowsGroupOpacity = view.layer.allowsGroupOpacity;
+  defaultAllowsEdgeAntialiasing = view.layer.allowsEdgeAntialiasing;
+}
+
 
 - (instancetype)init
 {
@@ -205,6 +222,8 @@ static UIColor *defaultTintColor = nil;
   contents = nil;
   isHidden = NO;
   needsDisplayOnBoundsChange = NO;
+  allowsGroupOpacity = defaultAllowsGroupOpacity;
+  allowsEdgeAntialiasing = defaultAllowsEdgeAntialiasing;
   autoresizesSubviews = YES;
   alpha = 1.0f;
   cornerRadius = 0.0f;
@@ -269,6 +288,12 @@ static UIColor *defaultTintColor = nil;
 {
   needsDisplayOnBoundsChange = flag;
   _flags.setNeedsDisplayOnBoundsChange = YES;
+}
+
+- (void)setAllowsGroupOpacity:(BOOL)flag
+{
+  allowsGroupOpacity = flag;
+  _flags.setAllowsGroupOpacity = YES;
 }
 
 - (void)setAllowsEdgeAntialiasing:(BOOL)flag
@@ -726,6 +751,9 @@ static UIColor *defaultTintColor = nil;
 
   if (flags.setNeedsDisplayOnBoundsChange)
     layer.needsDisplayOnBoundsChange = needsDisplayOnBoundsChange;
+  
+  if (flags.setAllowsGroupOpacity)
+    layer.allowsGroupOpacity = allowsGroupOpacity;
 
   if (flags.setAllowsEdgeAntialiasing)
     layer.allowsEdgeAntialiasing = allowsEdgeAntialiasing;
@@ -851,6 +879,9 @@ static UIColor *defaultTintColor = nil;
 
   if (flags.setNeedsDisplayOnBoundsChange)
     layer.needsDisplayOnBoundsChange = needsDisplayOnBoundsChange;
+  
+  if (flags.setAllowsGroupOpacity)
+    layer.allowsGroupOpacity = allowsGroupOpacity;
 
   if (flags.setAllowsEdgeAntialiasing)
     layer.allowsEdgeAntialiasing = allowsEdgeAntialiasing;
@@ -955,6 +986,7 @@ static UIColor *defaultTintColor = nil;
   pendingState.borderWidth = layer.borderWidth;
   pendingState.borderColor = layer.borderColor;
   pendingState.needsDisplayOnBoundsChange = layer.needsDisplayOnBoundsChange;
+  pendingState.allowsGroupOpacity = layer.allowsGroupOpacity;
   pendingState.allowsEdgeAntialiasing = layer.allowsEdgeAntialiasing;
   pendingState.edgeAntialiasingMask = layer.edgeAntialiasingMask;
   return pendingState;
@@ -998,6 +1030,7 @@ static UIColor *defaultTintColor = nil;
   pendingState.autoresizingMask = view.autoresizingMask;
   pendingState.autoresizesSubviews = view.autoresizesSubviews;
   pendingState.needsDisplayOnBoundsChange = layer.needsDisplayOnBoundsChange;
+  pendingState.allowsGroupOpacity = layer.allowsGroupOpacity;
   pendingState.allowsEdgeAntialiasing = layer.allowsEdgeAntialiasing;
   pendingState.edgeAntialiasingMask = layer.edgeAntialiasingMask;
   pendingState.isAccessibilityElement = view.isAccessibilityElement;
@@ -1067,6 +1100,7 @@ static UIColor *defaultTintColor = nil;
   || flags.setAutoresizingMask
   || flags.setAutoresizesSubviews
   || flags.setNeedsDisplayOnBoundsChange
+  || flags.setAllowsGroupOpacity
   || flags.setAllowsEdgeAntialiasing
   || flags.setEdgeAntialiasingMask
   || flags.needsDisplay

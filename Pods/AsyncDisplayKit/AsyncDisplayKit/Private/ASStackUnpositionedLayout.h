@@ -1,12 +1,12 @@
-/*
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
- *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
- */
+//
+//  ASStackUnpositionedLayout.h
+//  AsyncDisplayKit
+//
+//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+//
 
 #import <vector>
 
@@ -16,7 +16,7 @@
 
 struct ASStackUnpositionedItem {
   /** The original source child. */
-  id<ASLayoutable> child;
+  id<ASLayoutElement> child;
   /** The proposed layout. */
   ASLayout *layout;
 };
@@ -31,7 +31,7 @@ struct ASStackUnpositionedLayout {
   const CGFloat violation;
 
   /** Given a set of children, computes the unpositioned layouts for those children. */
-  static ASStackUnpositionedLayout compute(const std::vector<id<ASLayoutable>> &children,
+  static ASStackUnpositionedLayout compute(const std::vector<id<ASLayoutElement>> &children,
                                            const ASStackLayoutSpecStyle &style,
                                            const ASSizeRange &sizeRange);
 };

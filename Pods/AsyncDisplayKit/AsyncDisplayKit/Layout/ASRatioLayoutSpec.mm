@@ -1,20 +1,20 @@
-/*
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
- *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
- */
+//
+//  ASRatioLayoutSpec.mm
+//  AsyncDisplayKit
+//
+//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+//
 
 #import "ASRatioLayoutSpec.h"
 
 #import <algorithm>
+#import <tgmath.h>
 #import <vector>
 
 #import "ASAssert.h"
-#import "ASBaseDefines.h"
 
 #import "ASInternalHelpers.h"
 #import "ASLayout.h"
@@ -24,12 +24,12 @@
   CGFloat _ratio;
 }
 
-+ (instancetype)ratioLayoutSpecWithRatio:(CGFloat)ratio child:(id<ASLayoutable>)child
++ (instancetype)ratioLayoutSpecWithRatio:(CGFloat)ratio child:(id<ASLayoutElement>)child
 {
   return [[self alloc] initWithRatio:ratio child:child];
 }
 
-- (instancetype)initWithRatio:(CGFloat)ratio child:(id<ASLayoutable>)child;
+- (instancetype)initWithRatio:(CGFloat)ratio child:(id<ASLayoutElement>)child;
 {
   if (!(self = [super init])) {
     return nil;
@@ -47,16 +47,18 @@
   _ratio = ratio;
 }
 
-- (ASLayout *)measureWithSizeRange:(ASSizeRange)constrainedSize
+- (ASLayout *)calculateLayoutThatFits:(ASSizeRange)constrainedSize
 {
   std::vector<CGSize> sizeOptions;
-  if (!isinf(constrainedSize.max.width)) {
+  // TODO: layout: isValidForLayout() call should not be necessary if INFINITY is used
+  if (!isinf(constrainedSize.max.width) && ASPointsAreValidForLayout(constrainedSize.max.width)) {
     sizeOptions.push_back(ASSizeRangeClamp(constrainedSize, {
       constrainedSize.max.width,
       ASFloorPixelValue(_ratio * constrainedSize.max.width)
     }));
   }
-  if (!isinf(constrainedSize.max.height)) {
+  // TODO: layout: isValidForLayout() call should not be necessary if INFINITY is used
+  if (!isinf(constrainedSize.max.height) && ASPointsAreValidForLayout(constrainedSize.max.width)) {
     sizeOptions.push_back(ASSizeRangeClamp(constrainedSize, {
       ASFloorPixelValue(constrainedSize.max.height / _ratio),
       constrainedSize.max.height
@@ -65,32 +67,22 @@
 
   // Choose the size closest to the desired ratio.
   const auto &bestSize = std::max_element(sizeOptions.begin(), sizeOptions.end(), [&](const CGSize &a, const CGSize &b){
-    return fabs((a.height / a.width) - _ratio) > fabs((b.height / b.width) - _ratio);
+    return std::fabs((a.height / a.width) - _ratio) > std::fabs((b.height / b.width) - _ratio);
   });
 
   // If there is no max size in *either* dimension, we can't apply the ratio, so just pass our size range through.
   const ASSizeRange childRange = (bestSize == sizeOptions.end()) ? constrainedSize : ASSizeRangeMake(*bestSize, *bestSize);
-  ASLayout *sublayout = [self.child measureWithSizeRange:childRange];
+  const CGSize parentSize = (bestSize == sizeOptions.end()) ? ASLayoutElementParentSizeUndefined : *bestSize;
+  ASLayout *sublayout = [self.child layoutThatFits:childRange parentSize:parentSize];
   sublayout.position = CGPointZero;
-  return [ASLayout layoutWithLayoutableObject:self size:sublayout.size sublayouts:@[sublayout]];
-}
-
-- (void)setChildren:(NSArray *)children
-{
-  ASDisplayNodeAssert(NO, @"not supported by this layout spec");
-}
-
-- (NSArray *)children
-{
-  ASDisplayNodeAssert(NO, @"not supported by this layout spec");
-  return nil;
+  return [ASLayout layoutWithLayoutElement:self size:sublayout.size sublayouts:@[sublayout]];
 }
 
 @end
 
 @implementation ASRatioLayoutSpec (Debugging)
 
-#pragma mark - ASLayoutableAsciiArtProtocol
+#pragma mark - ASLayoutElementAsciiArtProtocol
 
 - (NSString *)asciiArtName
 {

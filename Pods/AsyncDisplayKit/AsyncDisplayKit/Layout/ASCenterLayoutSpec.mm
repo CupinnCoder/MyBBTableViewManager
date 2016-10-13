@@ -1,16 +1,15 @@
-/*
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
- *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
- */
+//
+//  ASCenterLayoutSpec.mm
+//  AsyncDisplayKit
+//
+//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+//
 
 #import "ASCenterLayoutSpec.h"
 
-#import "ASInternalHelpers.h"
 #import "ASLayout.h"
 
 @implementation ASCenterLayoutSpec
@@ -21,7 +20,7 @@
 
 - (instancetype)initWithCenteringOptions:(ASCenterLayoutSpecCenteringOptions)centeringOptions
                            sizingOptions:(ASCenterLayoutSpecSizingOptions)sizingOptions
-                                   child:(id<ASLayoutable>)child;
+                                   child:(id<ASLayoutElement>)child;
 {
   ASRelativeLayoutSpecPosition verticalPosition = [self verticalPositionFromCenteringOptions:centeringOptions];
   ASRelativeLayoutSpecPosition horizontalPosition = [self horizontalPositionFromCenteringOptions:centeringOptions];
@@ -36,7 +35,7 @@
 
 + (instancetype)centerLayoutSpecWithCenteringOptions:(ASCenterLayoutSpecCenteringOptions)centeringOptions
                                        sizingOptions:(ASCenterLayoutSpecSizingOptions)sizingOptions
-                                               child:(id<ASLayoutable>)child
+                                               child:(id<ASLayoutElement>)child
 {
   return [[self alloc] initWithCenteringOptions:centeringOptions sizingOptions:sizingOptions child:child];
 }

@@ -1,15 +1,25 @@
+//
+//  _AS-objc-internal.h
+//  AsyncDisplayKit
+//
+//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+//
+
 /*
  * Copyright (c) 2009 Apple Inc.  All Rights Reserved.
- * 
+ *
  * @APPLE_LICENSE_HEADER_START@
- * 
+ *
  * This file contains Original Code and/or Modifications of Original Code
  * as defined in and that are subject to the Apple Public Source License
  * Version 2.0 (the 'License'). You may not use this file except in
  * compliance with the License. Please obtain a copy of the License at
  * http://www.opensource.apple.com/apsl/ and read it before using this
  * file.
- * 
+ *
  * The Original Code and all software distributed under the License are
  * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
  * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
@@ -17,7 +27,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
  * Please see the License for the specific language governing rights and
  * limitations under the License.
- * 
+ *
  * @APPLE_LICENSE_HEADER_END@
  */
 
@@ -387,18 +397,20 @@ _objc_deallocOnMainThreadHelper(void *context)
 //
 
 typedef enum {
-    _OBJC_RESURRECT_OBJECT = -1,        /* _logicBlock has called -retain, and scheduled a -release for later. */
     _OBJC_DEALLOC_OBJECT_NOW = 1,       /* call [self dealloc] immediately. */
     _OBJC_DEALLOC_OBJECT_LATER = 2      /* call [self dealloc] on the main queue. */
 } _objc_object_disposition_t;
 
-#define _OBJC_SUPPORTED_INLINE_REFCNT_LOGIC_BLOCK(_rc_ivar, _logicBlock)        \
+#define _OBJC_SUPPORTED_INLINE_REFCNT_LOGIC_STATEMENT(_rc_ivar, _logicStatement) \
     -(id)retain {                                                               \
         /* this will fail to compile if _rc_ivar is an unsigned type */         \
         int _retain_count_ivar_must_not_be_unsigned[0L - (__typeof__(_rc_ivar))-1] __attribute__((unused)); \
         __typeof__(_rc_ivar) _prev = __sync_fetch_and_add(&_rc_ivar, 2);        \
-        if (_prev < -2) { /* specifically allow resurrection from logical 0. */ \
+        if (_prev < 0) {                                                        \
             __builtin_trap(); /* BUG: retain of over-released ref */            \
+        }                                                                       \
+        if (_prev & 1) {                                                        \
+            __builtin_trap(); /* BUG: retain of over-released ref (dealloc) */  \
         }                                                                       \
         return self;                                                            \
     }                                                                           \
@@ -409,14 +421,11 @@ typedef enum {
         } else if (_prev < 0) {                                                 \
             __builtin_trap(); /* BUG: over-release */                           \
         }                                                                       \
-        _objc_object_disposition_t fate = _logicBlock(self);                    \
-        if (fate == _OBJC_RESURRECT_OBJECT) {                                   \
-            return;                                                             \
-        }                                                                       \
         /* mark the object as deallocating. */                                  \
         if (!__sync_bool_compare_and_swap(&_rc_ivar, -2, 1)) {                  \
             __builtin_trap(); /* BUG: dangling ref did a retain */              \
         }                                                                       \
+        _objc_object_disposition_t fate = _logicStatement;                      \
         if (fate == _OBJC_DEALLOC_OBJECT_NOW) {                                 \
             [self dealloc];                                                     \
         } else if (fate == _OBJC_DEALLOC_OBJECT_LATER) {                        \
@@ -427,12 +436,12 @@ typedef enum {
         }                                                                       \
     }                                                                           \
     -(NSUInteger)retainCount {                                                  \
-        return (_rc_ivar + 2) >> 1;                                             \
+        return (__atomic_load_n(&_rc_ivar, __ATOMIC_SEQ_CST) + 2) >> 1;         \
     }                                                                           \
     -(BOOL)_tryRetain {                                                         \
         __typeof__(_rc_ivar) _prev;                                             \
         do {                                                                    \
-            _prev = _rc_ivar;                                                   \
+            _prev = __atomic_load_n(&_rc_ivar, __ATOMIC_SEQ_CST);;              \
             if (_prev & 1) {                                                    \
                 return 0;                                                       \
             } else if (_prev == -2) {                                           \
@@ -444,22 +453,17 @@ typedef enum {
         return 1;                                                               \
     }                                                                           \
     -(BOOL)_isDeallocating {                                                    \
-        if (_rc_ivar == -2) {                                                   \
+        __typeof__(_rc_ivar) _prev = __atomic_load_n(&_rc_ivar, __ATOMIC_SEQ_CST); \
+        if (_prev == -2) {                                                      \
             return 1;                                                           \
-        } else if (_rc_ivar < -2) {                                             \
+        } else if (_prev < -2) {                                                \
             __builtin_trap(); /* BUG: over-release elsewhere */                 \
         }                                                                       \
-        return _rc_ivar & 1;                                                    \
+        return _prev & 1;                                                       \
     }
 
 #define _OBJC_SUPPORTED_INLINE_REFCNT_LOGIC(_rc_ivar, _dealloc2main)            \
-    _OBJC_SUPPORTED_INLINE_REFCNT_LOGIC_BLOCK(_rc_ivar, (^(id _self_ __attribute__((unused))) { \
-        if (_dealloc2main && !pthread_main_np()) {                              \
-            return _OBJC_DEALLOC_OBJECT_LATER;                                  \
-        } else {                                                                \
-            return _OBJC_DEALLOC_OBJECT_NOW;                                    \
-        }                                                                       \
-    }))
+    _OBJC_SUPPORTED_INLINE_REFCNT_LOGIC_STATEMENT(_rc_ivar, ( (_dealloc2main && !pthread_main_np()) ? _OBJC_DEALLOC_OBJECT_LATER : _OBJC_DEALLOC_OBJECT_NOW ))
 
 #define _OBJC_SUPPORTED_INLINE_REFCNT(_rc_ivar) _OBJC_SUPPORTED_INLINE_REFCNT_LOGIC(_rc_ivar, 0)
 #define _OBJC_SUPPORTED_INLINE_REFCNT_WITH_DEALLOC2MAIN(_rc_ivar) _OBJC_SUPPORTED_INLINE_REFCNT_LOGIC(_rc_ivar, 1)
