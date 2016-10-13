@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "MyBBTableViewManager"
-  s.version      = "0.0.1"
+  s.version      = "0.0.2"
   s.summary      = "ASPkit列表管理器"
   s.homepage     = "https://github.com/CupinnCoder/MyBBTableView"
   s.license      = "Copyright (C) 2016 Gary, Inc.  All rights reserved."
